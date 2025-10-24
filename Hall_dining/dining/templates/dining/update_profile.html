@@ -28,10 +28,10 @@
                             <label class="form-label">Meal Type</label>
                             <select name="meal_type" class="form-select" required>
                                 <option value="full" {% if user.userprofile.meal_type == 'full' %}selected{% endif %}>
-                                    Full Meal (৳{{ current_rates.full_meal_rate|default:50 }})
+                                    Full Meal (৳{{ current_rates.full_meal_rate}})
                                 </option>
                                 <option value="half" {% if user.userprofile.meal_type == 'half' %}selected{% endif %}>
-                                    Half Meal (৳{{ current_rates.half_meal_rate|default:25 }})
+                                    Half Meal (৳{{ current_rates.half_meal_rate}})
                                 </option>
                             </select>
                             <div class="form-text">

@@ -98,6 +98,7 @@ class MealRecord(models.Model):
     date = models.DateField(default=timezone.now)
     meal_type = models.CharField(max_length=10, choices=MEAL_TYPES)
     taken = models.BooleanField(default=False)
+    taken_dinner = models.BooleanField(default=False)
     requested_for_night = models.BooleanField(default=False)
     meal_count = models.DecimalField(max_digits=4, decimal_places=2, default=1.0)  # 1.0, 2.0, 0.5 etc.
     
@@ -169,7 +170,12 @@ class Notice(models.Model):
     title = models.CharField(max_length=200, verbose_name="Title")
     description = models.TextField(verbose_name="Description")
     date = models.DateTimeField(default=timezone.now, verbose_name="Date")
-    attachment = models.FileField(upload_to='notices/attachments/', blank=True, null=True, verbose_name="Attachment")
+    attachment = models.FileField(
+        upload_to='notices/attachments/', 
+        blank=True, 
+        null=True, 
+        verbose_name="Attachment"
+    )
     
     class Meta:
         verbose_name = "Notice"
@@ -182,6 +188,13 @@ class Notice(models.Model):
     def get_file_name(self):
         return os.path.basename(self.attachment.name) if self.attachment else None
     
+    def get_attachment_url(self):
+        """Safe method to get attachment URL"""
+        if self.attachment and hasattr(self.attachment, 'url'):
+            return self.attachment.url
+        return None
+    
+
 class Feast(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()

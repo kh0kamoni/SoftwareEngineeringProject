@@ -8,6 +8,9 @@ from decimal import Decimal
 import json
 from .models import UserProfile, MealRecord, Transaction, MealSchedule, User, Notice, MealRate, Feast, GuestFeastRequest, Complaint
 from .forms import UserRegisterForm, RechargeForm, MealScheduleForm, NoticeForm, MealRateForm, FeastForm, GuestFeastRequestForm, ComplaintForm, UserProfileForm
+from django.http import FileResponse, Http404
+from django.conf import settings
+import os
 
 
 
@@ -314,6 +317,13 @@ def meal_schedule(request):
     return render(request, 'dining/meal_schedule.html', context)
 
 
+def download_attachment(request, filename):
+    file_path = os.path.join(settings.MEDIA_ROOT, 'notices', 'attachments', filename)
+    
+    if os.path.exists(file_path):
+        return FileResponse(open(file_path, 'rb'), as_attachment=True)
+    else:
+        raise Http404("File not found")
 
 # Public view -所有人都可以看到
 def notice_list(request):
@@ -615,5 +625,10 @@ def update_profile(request):
             return redirect('dashboard')
     else:
         form = UserProfileForm(instance=profile)
-    
-    return render(request, 'dining/update_profile.html', {'form': form})
+        today = timezone.now().date()
+        current_rates = MealRate.objects.filter(effective_from__lte=today).order_by('-effective_from').first()
+    return render(request, 'dining/update_profile.html', {
+        'form': form,
+        'current_rates': current_rates,
+
+    })

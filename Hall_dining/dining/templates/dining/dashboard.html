@@ -81,10 +81,7 @@
                                 <div class="col-md-6">
                                     <h6>Noon Meal</h6>
                                     <select name="meal_count" class="form-select mb-2">
-                                        <option value="0.5">Half Meal (0.5)</option>
-                                        <option value="1.0" selected>Full Meal (1.0)</option>
-                                        <option value="1.5">1.5 Meals</option>
-                                        <option value="2.0">Double Meal (2.0)</option>
+                                        <option value="{{ profile.get_meal_rate }}" selected>৳{{ profile.get_meal_rate }}</option>
                                     </select>
                                     <input type="hidden" name="meal_type" value="noon">
                                     <button type="submit" class="btn btn-success">Record Noon Meal</button>
@@ -92,10 +89,7 @@
                                 <div class="col-md-6">
                                     <h6>Dinner</h6>
                                     <select name="meal_count" class="form-select mb-2">
-                                        <option value="0.5">Half Meal (0.5)</option>
-                                        <option value="1.0" selected>Full Meal (1.0)</option>
-                                        <option value="1.5">1.5 Meals</option>
-                                        <option value="2.0">Double Meal (2.0)</option>
+                                        <option value="{{1.0}}" selected>৳{{ profile.get_meal_rate }}</option>
                                     </select>
                                     <input type="hidden" name="meal_type" value="dinner">
                                     <button type="submit" class="btn btn-success">Record Dinner</button>

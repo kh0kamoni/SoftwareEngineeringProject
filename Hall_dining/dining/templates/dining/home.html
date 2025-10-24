@@ -42,10 +42,10 @@
         </div>
     </div>
     </div>
-        <div class="mt-5">
-            <a href="{% url 'active_users' %}" class="btn btn-outline-light me-2">View Active Users</a>
-            <a href="{% url 'meal_schedule' %}" class="btn btn-outline-light">Today's Meal Schedule</a>
-        </div>
+        <div class="mt-5" style="position: relative; z-index: 1000;">
+    <a href="{% url 'active_users' %}" class="btn btn-outline-light me-2" style="pointer-events: auto; position: relative; z-index: 1001;">View Active Users</a>
+    <a href="{% url 'meal_schedule' %}" class="btn btn-outline-light" style="pointer-events: auto; position: relative; z-index: 1001;">Today's Meal Schedule</a>
+</div>
     </div>
 </div>
 
