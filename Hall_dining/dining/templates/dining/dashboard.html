@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Personal Dashboard</h4>
+                    <span class="badge {% if profile.meal_active %}bg-success{% else %}bg-danger{% endif %}">
+                        Meal Status: {% if profile.meal_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Personal Information</h6>
+                            <p><strong>Name:</strong> {{ user.get_full_name }}</p>
+                            <p><strong>Room Number:</strong> {{ profile.room_number }}</p>
+                            <p><strong>Mobile:</strong> {{ profile.mobile_number }}</p>
+                            <p><strong>Balance:</strong> ৳{{ profile.balance }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Meal Statistics</h6>
+                            <p><strong>Total Meals This Month:</strong> {{ total_meals_this_month }}</p>
+                            <p><strong>Today's Date:</strong> {{ today }}</p>
+                            
+                            <div class="mt-3">
+                                <form method="POST" action="{% url 'toggle_meal_status' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn {% if profile.meal_active %}btn-warning{% else %}btn-success{% endif %}">
+                                        {% if profile.meal_active %}Deactivate Meal{% else %}Activate Meal{% endif %}
+                                    </button>
+                                </form>
+                                
+                                {% if profile.meal_active %}
+                                <form method="POST" action="{% url 'request_meal_for_night' %}" class="mt-2">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-info btn-sm">
+                                        Request Noon Meal for Night
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>Meal Statistics</h6>
+                                <p><strong>Total Meals This Month:</strong> {{ total_meals_this_month }}</p>
+                                <p><strong>Monthly Meal Cost:</strong> ৳{{ monthly_meal_cost }}</p>
+                                <p><strong>Current Meal Rate:</strong> ৳{{ profile.get_meal_rate }} ({{ profile.meal_type|title }})</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>Quick Actions</h6>
+                                <a href="{% url 'update_profile' %}" class="btn btn-sm btn-outline-primary mb-2">Update Meal Type</a>
+                                <a href="{% url 'financial_summary' %}" class="btn btn-sm btn-outline-info mb-2">View Financial Summary</a>
+                                <a href="{% url 'complaint_list' %}" class="btn btn-sm btn-outline-warning">Complaints</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Multiple Meal Selection -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5>Today's Meal Selection</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{% url 'update_meal_count' %}">
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Noon Meal</h6>
+                                    <select name="meal_count" class="form-select mb-2">
+                                        <option value="0.5">Half Meal (0.5)</option>
+                                        <option value="1.0" selected>Full Meal (1.0)</option>
+                                        <option value="1.5">1.5 Meals</option>
+                                        <option value="2.0">Double Meal (2.0)</option>
+                                    </select>
+                                    <input type="hidden" name="meal_type" value="noon">
+                                    <button type="submit" class="btn btn-success">Record Noon Meal</button>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Dinner</h6>
+                                    <select name="meal_count" class="form-select mb-2">
+                                        <option value="0.5">Half Meal (0.5)</option>
+                                        <option value="1.0" selected>Full Meal (1.0)</option>
+                                        <option value="1.5">1.5 Meals</option>
+                                        <option value="2.0">Double Meal (2.0)</option>
+                                    </select>
+                                    <input type="hidden" name="meal_type" value="dinner">
+                                    <button type="submit" class="btn btn-success">Record Dinner</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Meal Status -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Today's Meal Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Noon Meal</h6>
+                            {% for meal in today_meals %}
+                                {% if meal.meal_type == 'noon' %}
+                                    <span class="badge {% if meal.taken %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {% if meal.taken %}Taken{% else %}Not Taken{% endif %}
+                                    </span>
+                                    {% if meal.requested_for_night %}
+                                        <span class="badge bg-info">Requested for Night</span>
+                                    {% endif %}
+                                {% endif %}
+                            {% empty %}
+                                <span class="badge bg-secondary">Not Recorded</span>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Dinner</h6>
+                            {% for meal in today_meals %}
+                                {% if meal.meal_type == 'dinner' %}
+                                    <span class="badge {% if meal.taken %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {% if meal.taken %}Taken{% else %}Not Taken{% endif %}
+                                    </span>
+                                {% endif %}
+                            {% empty %}
+                                <span class="badge bg-secondary">Not Recorded</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Quick Links -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Links</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{% url 'active_users' %}" class="btn btn-outline-primary w-100 mb-2">
+                        View Active Users
+                    </a>
+                    <a href="{% url 'meal_schedule' %}" class="btn btn-outline-primary w-100 mb-2">
+                        Today's Meal Schedule
+                    </a>
+                    {% if profile.is_dining_manager %}
+                    <a href="{% url 'manager_dashboard' %}" class="btn btn-success w-100">
+                        Manager Dashboard
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-warning">
+            <h4 class="mb-0">Guest Feast Requests</h4>
+        </div>
+        <div class="card-body">
+            {% if requests %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Guest Name</th>
+                            <th>Feast</th>
+                            <th>Requested By</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in requests %}
+                        <tr>
+                            <td>{{ request.guest_name }}</td>
+                            <td>{{ request.feast.title }}</td>
+                            <td>{{ request.requested_by_name }}</td>
+                            <td>{{ request.requested_at|date:"M d, Y" }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if request.status == 'pending' %}bg-warning
+                                    {% elif request.status == 'approved' %}bg-success
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ request.status|title }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if request.status == 'pending' %}
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'update_guest_request_status' request.id 'approved' %}" 
+                                       class="btn btn-success">Approve</a>
+                                    <a href="{% url 'update_guest_request_status' request.id 'rejected' %}" 
+                                       class="btn btn-danger">Reject</a>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">Processed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info text-center">
+                <h5>No Guest Requests</h5>
+                <p>There are no guest feast requests at the moment.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

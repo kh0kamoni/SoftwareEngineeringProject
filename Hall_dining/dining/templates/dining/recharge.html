@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Recharge Account</h4>
+                </div>
+                <div class="card-body">
+                    <p><strong>User:</strong> {{ user.get_full_name }}</p>
+                    <p><strong>Room:</strong> {{ user.userprofile.room_number }}</p>
+                    <p><strong>Current Balance:</strong> ৳{{ user.userprofile.balance }}</p>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-success">Recharge Account</button>
+                            <a href="{% url 'manager_dashboard' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

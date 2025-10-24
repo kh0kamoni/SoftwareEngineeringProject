@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-4 mb-4">Muktijoddha Hall Dining Management System</h1>
+        <p class="lead mb-5">Efficient dining management for hall residents</p>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body" style="background-color: rgba(164, 16, 52, 0.05); color: #212529;">
+                    <h5 class="card-title">General User</h5>
+                    <p class="card-text">Access your personal dashboard and manage your meals</p>
+                    <a href="{% url 'login' %}" class="btn btn-primary">Get Started as User</a>
+                </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body" style="background-color: rgba(164, 16, 52, 0.05); color: #212529;">
+                        <h5 class="card-title">Dining Manager</h5>
+                        <p class="card-text">Manage dining operations and user accounts</p>
+                        <a href="{% url 'login' %}" class="btn btn-success">Login as Manager</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container my-5">
+    <div class="row text-center">
+        <div class="col-md-4">
+            <h4>🎯 Easy Meal Management</h4>
+            <p>Toggle your meal status with one click</p>
+        </div>
+        <div class="col-md-4">
+            <h4>💰 Balance Tracking</h4>
+            <p>Monitor your account balance in real-time</p>
+        </div>
+        <div class="col-md-4">
+            <h4>👥 Manager Control</h4>
+            <p>Efficient management of dining operations</p>
+        </div>
+    </div>
+    </div>
+        <div class="mt-5">
+            <a href="{% url 'active_users' %}" class="btn btn-outline-light me-2">View Active Users</a>
+            <a href="{% url 'meal_schedule' %}" class="btn btn-outline-light">Today's Meal Schedule</a>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

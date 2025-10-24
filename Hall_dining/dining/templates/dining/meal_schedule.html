@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">Today's Meal Schedule - {{ today }}</h4>
+        </div>
+        <div class="card-body">
+            {% if schedule %}
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">Noon Meal</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Time:</strong> {{ schedule.noon_start_time }} - {{ schedule.noon_end_time }}</p>
+                            <p><strong>Menu:</strong></p>
+                            <p>{{ schedule.noon_meal_items|linebreaks }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Dinner</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Time:</strong> {{ schedule.dinner_start_time }} - {{ schedule.dinner_end_time }}</p>
+                            <p><strong>Menu:</strong></p>
+                            <p>{{ schedule.dinner_meal_items|linebreaks }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <h5>No meal schedule found for today.</h5>
+                <p class="mb-0">Please check with the dining manager for today's meal information.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">General Dining Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Dining Rules</h6>
+                    <ul>
+                        <li>Meals must be taken during specified time slots</li>
+                        <li>No outside food allowed in dining area</li>
+                        <li>Maintain cleanliness and hygiene</li>
+                        <li>Respect dining staff and fellow residents</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Contact Information</h6>
+                    <p><strong>Dining Manager:</strong> Contact current manager for issues</p>
+                    <p><strong>Emergency:</strong> [Emergency contact number]</p>
+                    <p><strong>Complaints:</strong> Report to dining manager</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Dashboard Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Manager Dashboard</h2>
+        <div class="btn-group">
+            <a href="{% url 'financial_summary' %}" class="btn btn-info">
+                <i class="fas fa-chart-bar"></i> Financial Summary
+            </a>
+            <a href="{% url 'set_meal_rate' %}" class="btn btn-warning">
+                <i class="fas fa-money-bill"></i> Set Meal Rates
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6>Active Users</h6>
+                    <h3>{{ active_users.count }}</h3>
+                    <small>Meal Active</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6>Pending Requests</h6>
+                    <h3>{{ pending_guest_requests }}</h3>
+                    <small>Guest Feast</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6>Pending Complaints</h6>
+                    <h3>{{ pending_complaints }}</h3>
+                    <small>Need Attention</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6>Today's Meals</h6>
+                    <h3>{{ today_meals_taken }}</h3>
+                    <small>Meals Taken</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: User Management -->
+        <div class="col-md-6">
+            <!-- Search Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Search Users</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-8">
+                            <input type="text" name="q" class="form-control" placeholder="Search by room number, name, or mobile..." value="{{ query }}">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">Search</button>
+                            <a href="{% url 'manager_dashboard' %}" class="btn btn-secondary">Clear</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- User List -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Users</h5>
+                    <span class="badge bg-primary">{{ users.count }} users</span>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    {% for user_obj in users %}
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <h6>{{ user_obj.get_full_name }}</h6>
+                            <p class="mb-1">
+                                <strong>Room:</strong> {{ user_obj.userprofile.room_number }} | 
+                                <strong>Mobile:</strong> {{ user_obj.userprofile.mobile_number }}
+                            </p>
+                            <p class="mb-1">
+                                <strong>Balance:</strong> ৳{{ user_obj.userprofile.balance }} | 
+                                <strong>Meal Type:</strong> 
+                                <span class="badge {% if user_obj.userprofile.meal_type == 'full' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ user_obj.userprofile.meal_type|title }}
+                                </span>
+                            </p>
+                            <p class="mb-1">
+                                <strong>Status:</strong> 
+                                <span class="{% if user_obj.userprofile.meal_active %}meal-status-active{% else %}meal-status-inactive{% endif %}">
+                                    {{ user_obj.userprofile.meal_active|yesno:"Active,Inactive" }}
+                                </span>
+                            </p>
+                            <div class="btn-group btn-group-sm">
+                                <form method="POST" action="{% url 'toggle_user_meal_status' user_obj.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm {% if user_obj.userprofile.meal_active %}btn-warning{% else %}btn-success{% endif %}">
+                                        {{ user_obj.userprofile.meal_active|yesno:"Deactivate,Activate" }}
+                                    </button>
+                                </form>
+                                <a href="{% url 'recharge_account' user_obj.id %}" class="btn btn-primary btn-sm">Recharge</a>
+                                <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#userModal{{ user_obj.id }}">
+                                    Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Detail Modal -->
+                    <div class="modal fade" id="userModal{{ user_obj.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">{{ user_obj.get_full_name }} - Details</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p><strong>Room:</strong> {{ user_obj.userprofile.room_number }}</p>
+                                    <p><strong>Mobile:</strong> {{ user_obj.userprofile.mobile_number }}</p>
+                                    <p><strong>Email:</strong> {{ user_obj.email }}</p>
+                                    <p><strong>Balance:</strong> ৳{{ user_obj.userprofile.balance }}</p>
+                                    <p><strong>Meal Type:</strong> {{ user_obj.userprofile.meal_type|title }}</p>
+                                    <p><strong>Status:</strong> {{ user_obj.userprofile.meal_active|yesno:"Active,Inactive" }}</p>
+                                    <p><strong>Meal Rate:</strong> ৳{{ user_obj.userprofile.get_meal_rate }}</p>
+                                    
+                                    <h6>This Month's Meals:</h6>
+                                    {% with monthly_meals=user_obj.mealrecord_set.filter date__gte=month_start taken=True %}
+                                        <p>Total Meals: {{ monthly_meals.count }}</p>
+                                        <p>Total Cost: ৳{% widthratio user_obj.userprofile.get_meal_rate 1 monthly_meals.count %}</p>
+                                    {% endwith %}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No users found.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Management Tools -->
+        <div class="col-md-6">
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'create_notice' %}" class="btn btn-outline-primary w-100 mb-2">
+                                <i class="fas fa-bullhorn"></i> Create Notice
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'create_feast' %}" class="btn btn-outline-success w-100 mb-2">
+                                <i class="fas fa-utensils"></i> Create Feast
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'guest_feast_requests' %}" class="btn btn-outline-warning w-100 mb-2">
+                                <i class="fas fa-user-plus"></i> Guest Requests
+                                {% if pending_guest_requests > 0 %}
+                                <span class="badge bg-danger">{{ pending_guest_requests }}</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'complaint_list' %}" class="btn btn-outline-danger w-100 mb-2">
+                                <i class="fas fa-exclamation-circle"></i> Complaints
+                                {% if pending_complaints > 0 %}
+                                <span class="badge bg-danger">{{ pending_complaints }}</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'set_meal_rate' %}" class="btn btn-outline-info w-100 mb-2">
+                                <i class="fas fa-cog"></i> Meal Rates
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'financial_summary' %}" class="btn btn-outline-dark w-100 mb-2">
+                                <i class="fas fa-chart-pie"></i> Finance
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Users Meal Tracking -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Today's Meal Tracking ({{ today }})</h5>
+                    <a href="{% url 'active_users' %}" class="btn btn-sm btn-outline-primary">Public View</a>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% for profile in active_users %}
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <h6>{{ profile.user.get_full_name }} - Room {{ profile.room_number }}</h6>
+                            <small class="text-muted">Meal Type: {{ profile.meal_type|title }} (৳{{ profile.get_meal_rate }})</small>
+                            
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <form method="POST" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="user_id" value="{{ profile.user.id }}">
+                                        <input type="hidden" name="meal_type" value="noon">
+                                        
+                                        {% for meal in profile.user.mealrecord_set.all %}
+                                            {% if meal.date == today and meal.meal_type == 'noon' %}
+                                                <input type="hidden" name="action" value="toggle">
+                                                <button type="submit" class="btn btn-sm {% if meal.taken %}btn-success{% else %}btn-outline-secondary{% endif %}">
+                                                    Noon: {% if meal.taken %}✓{% else %}✗{% endif %}
+                                                </button>
+                                                {% if meal.requested_for_night %}
+                                                    <span class="badge bg-info">Night</span>
+                                                {% endif %}
+                                                <small class="d-block">Portion: {{ meal.meal_count }}</small>
+                                            {% endif %}
+                                        {% empty %}
+                                            <input type="hidden" name="action" value="set_taken">
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                                Noon: ✗
+                                            </button>
+                                        {% endfor %}
+                                    </form>
+                                </div>
+                                
+                                <div class="col-6">
+                                    <form method="POST" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="user_id" value="{{ profile.user.id }}">
+                                        <input type="hidden" name="meal_type" value="dinner">
+                                        
+                                        {% for meal in profile.user.mealrecord_set.all %}
+                                            {% if meal.date == today and meal.meal_type == 'dinner' %}
+                                                <input type="hidden" name="action" value="toggle">
+                                                <button type="submit" class="btn btn-sm {% if meal.taken %}btn-success{% else %}btn-outline-secondary{% endif %}">
+                                                    Dinner: {% if meal.taken %}✓{% else %}✗{% endif %}
+                                                </button>
+                                                <small class="d-block">Portion: {{ meal.meal_count }}</small>
+                                            {% endif %}
+                                        {% empty %}
+                                            <input type="hidden" name="action" value="set_taken">
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                                Dinner: ✗
+                                            </button>
+                                        {% endfor %}
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No active users found.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- System Alerts -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">System Alerts</h5>
+                </div>
+                <div class="card-body">
+                    {% if low_balance_users %}
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Low Balance Users</h6>
+                        <ul class="mb-0">
+                            {% for user in low_balance_users %}
+                            <li>{{ user.user.get_full_name }} - Room {{ user.room_number }}: ৳{{ user.balance }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if inactive_users %}
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> Inactive Meals</h6>
+                        <p class="mb-0">{{ inactive_users.count }} users have inactive meals</p>
+                    </div>
+                    {% endif %}
+
+                    {% if not low_balance_users and not inactive_users %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> All systems are running smoothly.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.meal-status-active {
+    color: #28a745;
+    font-weight: bold;
+}
+.meal-status-inactive {
+    color: #dc3545;
+    font-weight: bold;
+}
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.card-body {
+    padding: 1rem;
+}
+</style>
+{% endblock %}

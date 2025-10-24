@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h4 class="mb-0">Set Meal Rates</h4>
+                </div>
+                <div class="card-body">
+                    {% if current_rate %}
+                    <div class="alert alert-info">
+                        <h6>Current Rates (Effective from {{ current_rate.effective_from }})</h6>
+                        <p><strong>Full Meal:</strong> ৳{{ current_rate.full_meal_rate }}</p>
+                        <p><strong>Half Meal:</strong> ৳{{ current_rate.half_meal_rate }}</p>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <h6>No meal rates configured!</h6>
+                        <p class="mb-0">Please set the initial meal rates below.</p>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <!-- Your form fields here -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_full_meal_rate" class="form-label">Full Meal Rate *</label>
+                                    <input type="number" name="full_meal_rate" class="form-control" 
+                                           id="id_full_meal_rate" step="0.01" min="0" required
+                                           value="{{ form.full_meal_rate.value|default:'' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="id_half_meal_rate" class="form-label">Half Meal Rate *</label>
+                                    <input type="number" name="half_meal_rate" class="form-control" 
+                                           id="id_half_meal_rate" step="0.01" min="0" required
+                                           value="{{ form.half_meal_rate.value|default:'' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_effective_from" class="form-label">Effective From *</label>
+                            <input type="date" name="effective_from" class="form-control" 
+                                   id="id_effective_from" required
+                                   value="{{ form.effective_from.value|default:'' }}">
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'manager_dashboard' %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save"></i> Update Meal Rates
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Rate History -->
+        <div class="col-md-4    ">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Rate History</h5>
+                </div>
+                <div class="card-body">
+                    {% if meal_rates %}
+                        <div class="list-group">
+                            {% for rate in meal_rates %}
+                            <div class="list-group-item {% if rate == current_rate %}active{% endif %}">
+                                <small class="text-muted">{{ rate.effective_from }}</small>
+                                <div class="d-flex justify-content-between">
+                                    <span>Full: ৳{{ rate.full_meal_rate }}</span>
+                                    <span>Half: ৳{{ rate.half_meal_rate }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No rate history found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

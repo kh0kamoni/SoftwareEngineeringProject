@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Financial Summary</h4>
+        </div>
+        <div class="card-body">
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h5>Total Recharges</h5>
+                            <h3>৳{{ total_recharges }}</h3>
+                            <small>Money Collected</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h5>Meal Deductions</h5>
+                            <h3>৳{{ total_meal_deductions }}</h3>
+                            <small>Meal Expenses</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h5>Other Expenses</h5>
+                            <h3>৳{{ total_expenses }}</h3>
+                            <small>Management Costs</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card {% if manager_balance >= 0 %}bg-primary{% else %}bg-danger{% endif %} text-white">
+                        <div class="card-body text-center">
+                            <h5>Manager Balance</h5>
+                            <h3>৳{{ manager_balance }}</h3>
+                            <small>Current Status</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Breakdown -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Income Breakdown</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Description</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Total User Recharges</td>
+                                        <td class="text-success">+৳{{ total_recharges }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Meal Deductions</td>
+                                        <td class="text-danger">-৳{{ total_meal_deductions }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Other Expenses</td>
+                                        <td class="text-danger">-৳{{ total_expenses }}</td>
+                                    </tr>
+                                    <tr class="table-primary">
+                                        <td><strong>Net Balance</strong></td>
+                                        <td><strong>৳{{ manager_balance }}</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">User Balances Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <h6>Total User Balances</h6>
+                                <h3>৳{{ total_user_balances }}</h3>
+                                <small>Sum of all user account balances</small>
+                            </div>
+                            
+                            <h6>Balance Distribution:</h6>
+                            <ul class="list-group">
+                                {% for user in user_balances %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ user.user.get_full_name }}
+                                    <span class="badge {% if user.balance > 0 %}bg-success{% else %}bg-danger{% endif %} rounded-pill">
+                                        ৳{{ user.balance }}
+                                    </span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Transactions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>User</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in recent_transactions %}
+                                <tr>
+                                    <td>{{ transaction.created_at|date:"M d, Y" }}</td>
+                                    <td>{{ transaction.user.get_full_name|default:"System" }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if transaction.transaction_type == 'recharge' %}bg-success
+                                            {% elif transaction.transaction_type == 'meal_deduction' %}bg-info
+                                            {% else %}bg-warning{% endif %}">
+                                            {{ transaction.transaction_type|title }}
+                                        </span>
+                                    </td>
+                                    <td class="
+                                        {% if transaction.transaction_type == 'recharge' %}text-success
+                                        {% else %}text-danger{% endif %}">
+                                        {% if transaction.transaction_type == 'recharge' %}+{% else %}-{% endif %}৳{{ transaction.amount }}
+                                    </td>
+                                    <td>{{ transaction.description }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">No transactions found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-4 text-center">
+                <a href="{% url 'manager_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+                {% if user.userprofile.is_dining_manager %}
+                <button class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print Report
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .navbar, footer {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #000 !important;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">Active Users - {{ today }}</h4>
+            <p class="text-muted mb-0">Public view of today's meal status</p>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Room No</th>
+                            <th>Name</th>
+                            <th>Noon Meal</th>
+                            <th>Dinner</th>
+                            <th>Special Request</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for profile in active_users %}
+                        <tr>
+                            <td>{{ profile.room_number }}</td>
+                            <td>{{ profile.user.get_full_name }}</td>
+                            <td>
+                                {% with profile.user.mealrecord_set.all as meals %}
+                                    {% for meal in meals %}
+                                        {% if meal.date == today and meal.meal_type == 'noon' %}
+                                            {% if meal.taken %}
+                                                <span class="text-success">✓ Taken</span>
+                                            {% else %}
+                                                <span class="text-danger">✗ Not Taken</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% empty %}
+                                        <span class="text-secondary">-</span>
+                                    {% endfor %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with profile.user.mealrecord_set.all as meals %}
+                                    {% for meal in meals %}
+                                        {% if meal.date == today and meal.meal_type == 'dinner' %}
+                                            {% if meal.taken %}
+                                                <span class="text-success">✓ Taken</span>
+                                            {% else %}
+                                                <span class="text-danger">✗ Not Taken</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% empty %}
+                                        <span class="text-secondary">-</span>
+                                    {% endfor %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with profile.user.mealrecord_set.all as meals %}
+                                    {% for meal in meals %}
+                                        {% if meal.date == today and meal.meal_type == 'noon' and meal.requested_for_night %}
+                                            <span class="badge bg-info">Noon for Night</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endwith %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No active users found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
