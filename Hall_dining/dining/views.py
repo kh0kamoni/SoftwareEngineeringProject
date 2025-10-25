@@ -6,6 +6,7 @@ from django.db.models import Q, Sum
 from django.utils import timezone
 from decimal import Decimal
 import json
+from django.http import JsonResponse
 from .models import UserProfile, MealRecord, Transaction, MealSchedule, User, Notice, MealRate, Feast, GuestFeastRequest, Complaint
 from .forms import UserRegisterForm, RechargeForm, MealScheduleForm, NoticeForm, MealRateForm, FeastForm, GuestFeastRequestForm, ComplaintForm, UserProfileForm
 from django.http import FileResponse, Http404
@@ -954,3 +955,46 @@ def update_profile(request):
         'current_rates': current_rates,
 
     })
+
+@login_required
+def get_user_details(request, user_id):
+    try:
+        user_obj = User.objects.get(id=user_id)
+        user_profile = user_obj.userprofile
+        
+        # Calculate monthly meals
+        month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        monthly_meals = user_obj.mealrecord_set.filter(
+            date__gte=month_start, 
+            taken=True
+        )
+        monthly_meals_count = monthly_meals.count()
+        monthly_meals_cost = user_profile.get_meal_rate() * monthly_meals_count
+        
+        user_data = {
+            'room_number': user_profile.room_number,
+            'mobile_number': user_profile.mobile_number,
+            'email': user_obj.email,
+            'balance': float(user_profile.balance),
+            'meal_type': user_profile.meal_type.title(),
+            'meal_active': user_profile.meal_active,
+            'meal_rate': float(user_profile.get_meal_rate()),
+            'monthly_meals_count': monthly_meals_count,
+            'monthly_meals_cost': float(monthly_meals_cost),
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'user_data': user_data
+        })
+        
+    except User.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'User not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

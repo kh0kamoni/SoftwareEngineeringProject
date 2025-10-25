@@ -50,7 +50,8 @@ urlpatterns = [
     path('update-meal-count/', views.update_meal_count, name='update_meal_count'),
     path('financial-summary/', views.financial_summary, name='financial_summary'),
     path('update-profile/', views.update_profile, name='update_profile'),
-     path('notices/attachments/<str:filename>/', views.download_attachment, name='download_attachment'),
+    path('notices/attachments/<str:filename>/', views.download_attachment, name='download_attachment'),
+    path('manager/user/<int:user_id>/details/', views.get_user_details, name='get_user_details'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 # THIS IS THE CRITICAL PART - Add media URL configuration

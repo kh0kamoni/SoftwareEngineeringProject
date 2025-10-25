@@ -57,103 +57,210 @@
 
     <div class="row">
         <!-- Left Column: User Management -->
-        <div class="col-md-6">
-            <!-- Search Section -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Search Users</h5>
+<div class="col-md-6">
+    <!-- Search Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Search Users</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-8">
+                    <input type="text" name="q" class="form-control" placeholder="Search by room number, name, or mobile..." value="{{ query }}">
                 </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    <a href="{% url 'manager_dashboard' %}" class="btn btn-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User List -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Users</h5>
+            <span class="badge bg-primary">{{ users.count }} users</span>
+        </div>
+        <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+            {% for user_obj in users %}
+            <div class="card mb-2 user-card">
                 <div class="card-body">
-                    <form method="GET" class="row g-3">
-                        <div class="col-md-8">
-                            <input type="text" name="q" class="form-control" placeholder="Search by room number, name, or mobile..." value="{{ query }}">
-                        </div>
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-primary">Search</button>
-                            <a href="{% url 'manager_dashboard' %}" class="btn btn-secondary">Clear</a>
-                        </div>
-                    </form>
+                    <h6>{{ user_obj.get_full_name }}</h6>
+                    <p class="mb-1">
+                        <strong>Room:</strong> {{ user_obj.userprofile.room_number }} | 
+                        <strong>Mobile:</strong> {{ user_obj.userprofile.mobile_number }}
+                    </p>
+                    <p class="mb-1">
+                        <strong>Balance:</strong> ৳{{ user_obj.userprofile.balance }} | 
+                        <strong>Meal Type:</strong> 
+                        <span class="badge {% if user_obj.userprofile.meal_type == 'full' %}bg-primary{% else %}bg-secondary{% endif %}">
+                            {{ user_obj.userprofile.meal_type|title }}
+                        </span>
+                    </p>
+                    <p class="mb-1">
+                        <strong>Status:</strong> 
+                        <span class="{% if user_obj.userprofile.meal_active %}meal-status-active{% else %}meal-status-inactive{% endif %}">
+                            {{ user_obj.userprofile.meal_active|yesno:"Active,Inactive" }}
+                        </span>
+                    </p>
+                    <div class="btn-group btn-group-sm">
+                        <form method="POST" action="{% url 'toggle_user_meal_status' user_obj.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm {% if user_obj.userprofile.meal_active %}btn-warning{% else %}btn-success{% endif %}">
+                                {{ user_obj.userprofile.meal_active|yesno:"Deactivate,Activate" }}
+                            </button>
+                        </form>
+                        <a href="{% url 'recharge_account' user_obj.id %}" class="btn btn-primary btn-sm">Recharge</a>
+                        <button type="button" class="btn btn-info btn-sm user-detail-btn" 
+                                data-user-id="{{ user_obj.id }}"
+                                data-user-name="{{ user_obj.get_full_name }}">
+                            Details
+                        </button>
+                    </div>
                 </div>
             </div>
+            {% empty %}
+            <p class="text-muted">No users found.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
 
-            <!-- User List -->
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Users</h5>
-                    <span class="badge bg-primary">{{ users.count }} users</span>
-                </div>
-                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
-                    {% for user_obj in users %}
-                    <div class="card mb-2">
-                        <div class="card-body">
-                            <h6>{{ user_obj.get_full_name }}</h6>
-                            <p class="mb-1">
-                                <strong>Room:</strong> {{ user_obj.userprofile.room_number }} | 
-                                <strong>Mobile:</strong> {{ user_obj.userprofile.mobile_number }}
-                            </p>
-                            <p class="mb-1">
-                                <strong>Balance:</strong> ৳{{ user_obj.userprofile.balance }} | 
-                                <strong>Meal Type:</strong> 
-                                <span class="badge {% if user_obj.userprofile.meal_type == 'full' %}bg-primary{% else %}bg-secondary{% endif %}">
-                                    {{ user_obj.userprofile.meal_type|title }}
-                                </span>
-                            </p>
-                            <p class="mb-1">
-                                <strong>Status:</strong> 
-                                <span class="{% if user_obj.userprofile.meal_active %}meal-status-active{% else %}meal-status-inactive{% endif %}">
-                                    {{ user_obj.userprofile.meal_active|yesno:"Active,Inactive" }}
-                                </span>
-                            </p>
-                            <div class="btn-group btn-group-sm">
-                                <form method="POST" action="{% url 'toggle_user_meal_status' user_obj.id %}" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm {% if user_obj.userprofile.meal_active %}btn-warning{% else %}btn-success{% endif %}">
-                                        {{ user_obj.userprofile.meal_active|yesno:"Deactivate,Activate" }}
-                                    </button>
-                                </form>
-                                <a href="{% url 'recharge_account' user_obj.id %}" class="btn btn-primary btn-sm">Recharge</a>
-                                <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#userModal{{ user_obj.id }}">
-                                    Details
-                                </button>
-                            </div>
-                        </div>
+<!-- Single Modal for User Details -->
+<div class="modal fade" id="userDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalTitle">User Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="userModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
-
-                    <!-- User Detail Modal -->
-                    <div class="modal fade" id="userModal{{ user_obj.id }}" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">{{ user_obj.get_full_name }} - Details</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <p><strong>Room:</strong> {{ user_obj.userprofile.room_number }}</p>
-                                    <p><strong>Mobile:</strong> {{ user_obj.userprofile.mobile_number }}</p>
-                                    <p><strong>Email:</strong> {{ user_obj.email }}</p>
-                                    <p><strong>Balance:</strong> ৳{{ user_obj.userprofile.balance }}</p>
-                                    <p><strong>Meal Type:</strong> {{ user_obj.userprofile.meal_type|title }}</p>
-                                    <p><strong>Status:</strong> {{ user_obj.userprofile.meal_active|yesno:"Active,Inactive" }}</p>
-                                    <p><strong>Meal Rate:</strong> ৳{{ user_obj.userprofile.get_meal_rate }}</p>
-                                    
-                                    <h6>This Month's Meals:</h6>
-                                    {% with monthly_meals=user_obj.mealrecord_set.filter date__gte=month_start taken=True %}
-                                        <p>Total Meals: {{ monthly_meals.count }}</p>
-                                        <p>Total Cost: ৳{% widthratio user_obj.userprofile.get_meal_rate 1 monthly_meals.count %}</p>
-                                    {% endwith %}
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <p class="text-muted">No users found.</p>
-                    {% endfor %}
+                    <p class="mt-2">Loading user details...</p>
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const userDetailButtons = document.querySelectorAll('.user-detail-btn');
+    const userModal = new bootstrap.Modal(document.getElementById('userDetailModal'));
+    const userModalTitle = document.getElementById('userModalTitle');
+    const userModalBody = document.getElementById('userModalBody');
+    
+    userDetailButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const userName = this.getAttribute('data-user-name');
+            loadUserDetails(userId, userName);
+        });
+    });
+    
+    function loadUserDetails(userId, userName) {
+        // Show loading state
+        userModalTitle.textContent = `${userName} - Details`;
+        userModalBody.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading user details...</p>
+            </div>
+        `;
+        
+        // Show modal immediately with loading state
+        userModal.show();
+        
+        // Make AJAX call to get user details - using the correct URL name
+        fetch(`{% url 'get_user_details' 0 %}`.replace('0', userId))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    updateModalContent(data.user_data, userName);
+                } else {
+                    showError('Failed to load user details: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error loading user details:', error);
+                showError('Error loading user details. Please try again.');
+            });
+    }
+    
+    function updateModalContent(userData, userName) {
+        userModalTitle.textContent = `${userName} - Details`;
+        
+        // Format the modal content with the user data
+        userModalBody.innerHTML = `
+            <p><strong>Room:</strong> ${userData.room_number}</p>
+            <p><strong>Mobile:</strong> ${userData.mobile_number}</p>
+            <p><strong>Email:</strong> ${userData.email}</p>
+            <p><strong>Balance:</strong> ৳${userData.balance}</p>
+            <p><strong>Meal Type:</strong> ${userData.meal_type}</p>
+            <p><strong>Status:</strong> ${userData.meal_active ? 'Active' : 'Inactive'}</p>
+            <p><strong>Meal Rate:</strong> ৳${userData.meal_rate}</p>
+            
+            <h6>This Month's Meals:</h6>
+            <p>Total Meals: ${userData.monthly_meals_count}</p>
+            <p>Total Cost: ৳${userData.monthly_meals_cost}</p>
+        `;
+    }
+    
+    function showError(message) {
+        userModalBody.innerHTML = `
+            <div class="alert alert-danger" role="alert">
+                ${message}
+            </div>
+        `;
+    }
+    
+    // Clear modal content when hidden to prevent flickering on next open
+    document.getElementById('userDetailModal').addEventListener('hidden.bs.modal', function() {
+        userModalBody.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading user details...</p>
+            </div>
+        `;
+    });
+});
+</script>
+
+<style>
+.user-card {
+    transition: all 0.2s ease;
+}
+
+.user-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Prevent any potential flickering */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal.fade .modal-dialog {
+    transition: transform 0.15s ease-out;
+}
+</style>
 
         <!-- Right Column: Management Tools -->
         <div class="col-md-6">
