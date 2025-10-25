@@ -73,29 +73,113 @@
                 <div class="card mt-4">
                     <div class="card-header">
                         <h5>Today's Meal Selection</h5>
+                        <small class="text-muted">Mark your meals or request noon meal for dinner pickup</small>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="{% url 'update_meal_count' %}">
-                            {% csrf_token %}
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>Noon Meal</h6>
-                                    <select name="meal_count" class="form-select mb-2">
-                                        <option value="{{ profile.get_meal_rate }}" selected>৳{{ profile.get_meal_rate }}</option>
-                                    </select>
-                                    <input type="hidden" name="meal_type" value="noon">
-                                    <button type="submit" class="btn btn-success">Record Noon Meal</button>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Dinner</h6>
-                                    <select name="meal_count" class="form-select mb-2">
-                                        <option value="{{1.0}}" selected>৳{{ profile.get_meal_rate }}</option>
-                                    </select>
-                                    <input type="hidden" name="meal_type" value="dinner">
-                                    <button type="submit" class="btn btn-success">Record Dinner</button>
+                        <div class="row">
+                            <!-- Noon Meal Section -->
+                            <div class="col-md-6">
+                                <div class="card {% if noon_taken %}border-success{% elif noon_requested_night %}border-warning{% endif %}">
+                                    <div class="card-body text-center">
+                                        <h6>Noon Meal</h6>
+                                        
+                                        {% if noon_taken %}
+                                            <div class="alert alert-success py-2">
+                                                <i class="fas fa-check-circle"></i> Taken at Noon
+                                            </div>
+                                            <button class="btn btn-outline-secondary" disabled>Already Recorded</button>
+                                        
+                                        {% elif noon_requested_night %}
+                                            <div class="alert alert-warning py-2">
+                                                <i class="fas fa-clock"></i> Requested for Dinner Pickup
+                                            </div>
+                                            <form method="POST" action="{% url 'update_meal_count' %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="meal_type" value="noon">
+                                                <button type="submit" class="btn btn-info" 
+                                                        {% if not profile.meal_active %}disabled{% endif %}>
+                                                    Take Now Instead
+                                                </button>
+                                            </form>
+                                        
+                                        {% else %}
+                                            <div class="d-grid gap-2">
+                                                <form method="POST" action="{% url 'update_meal_count' %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="meal_type" value="noon">
+                                                    <button type="submit" class="btn btn-success mb-2" 
+                                                            {% if not profile.meal_active %}disabled{% endif %}>
+                                                        <i class="fas fa-utensils"></i> Take Noon Meal
+                                                    </button>
+                                                </form>
+                                                
+                                                <form method="POST" action="{% url 'update_meal_count' %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="meal_type" value="noon">
+                                                    <input type="hidden" name="requested_for_night" value="true">
+                                                    <button type="submit" class="btn btn-outline-warning" 
+                                                            {% if not profile.meal_active %}disabled{% endif %}>
+                                                        <i class="fas fa-moon"></i> Request for Dinner Pickup
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
-                        </form>
+                            
+                            <!-- Dinner Section -->
+                            <div class="col-md-6">
+                                <div class="card {% if dinner_taken %}border-success{% endif %}">
+                                    <div class="card-body text-center">
+                                        <h6>Dinner</h6>
+                                        
+                                        {% if dinner_taken %}
+                                            <div class="alert alert-success py-2">
+                                                <i class="fas fa-check-circle"></i> Taken
+                                            </div>
+                                            <button class="btn btn-outline-secondary" disabled>Already Recorded</button>
+                                        
+                                        {% else %}
+                                            <form method="POST" action="{% url 'update_meal_count' %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="meal_type" value="dinner">
+                                                <button type="submit" class="btn btn-success" 
+                                                        {% if not profile.meal_active %}disabled{% endif %}>
+                                                    <i class="fas fa-utensils"></i> Take Dinner
+                                                </button>
+                                            </form>
+                                            
+                                            {% if noon_requested_night %}
+                                                <div class="alert alert-info mt-2 py-1">
+                                                    <small>Noon meal will be included</small>
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Status Messages -->
+                        {% if not profile.meal_active %}
+                            <div class="alert alert-warning mt-3">
+                                <i class="fas fa-exclamation-triangle"></i> 
+                                Your meal service is currently inactive. Please contact administrator.
+                            </div>
+                        {% endif %}
+                        
+                        {% if noon_taken and dinner_taken %}
+                            <div class="alert alert-success mt-3">
+                                <i class="fas fa-check-double"></i> 
+                                Both meals recorded for today!
+                            </div>
+                        {% elif noon_requested_night and dinner_taken %}
+                            <div class="alert alert-success mt-3">
+                                <i class="fas fa-check-double"></i> 
+                                Noon (dinner pickup) and dinner recorded!
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>

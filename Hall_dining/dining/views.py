@@ -100,8 +100,22 @@ def dashboard(request):
         user_profile.meal_active = False
         user_profile.save()
         messages.warning(request, 'Your meal has been automatically deactivated due to insufficient balance.')
+    # Check today's meal status
+    noon_record = MealRecord.objects.filter(
+        user=request.user,
+        date=today,
+        meal_type='noon'
+    ).first()
     
+    dinner_record = MealRecord.objects.filter(
+        user=request.user,
+        date=today,
+        meal_type='dinner'
+    ).first()
     context = {
+        'noon_taken': noon_record.taken if noon_record else False,
+        'noon_requested_night': noon_record.requested_for_night if noon_record else False,
+        'dinner_taken': dinner_record.taken if dinner_record else False,
         'profile': user_profile,
         'today_meals': today_meals,
         'total_meals_this_month': total_meals_this_month,
@@ -186,11 +200,10 @@ def request_meal_for_night(request):
 #         'query': query,
 #     }
 #     return render(request, 'dining/manager_dashboard.html', context)
-
 @login_required
 @user_passes_test(is_dining_manager)
 def manager_dashboard(request):
-    # Search functionality
+    # Search functionality for all users
     query = request.GET.get('q', '')
     users = User.objects.all()
     
@@ -204,14 +217,33 @@ def manager_dashboard(request):
     
     # Today's meal records
     today = timezone.now().date()
-    active_users = UserProfile.objects.filter(meal_active=True)
+    
+    # Search functionality for active users tracking
+    active_user_search = request.GET.get('active_user_search', '')
+    active_users = UserProfile.objects.filter(meal_active=True).select_related('user')
+    
+    if active_user_search:
+        active_users = active_users.filter(
+            Q(room_number__icontains=active_user_search) |
+            Q(user__first_name__icontains=active_user_search) |
+            Q(user__last_name__icontains=active_user_search)
+        )
     
     # Statistics for dashboard
     pending_guest_requests = GuestFeastRequest.objects.filter(status='pending').count()
     pending_complaints = Complaint.objects.filter(status='pending').count()
     
-    # Today's meals taken
-    today_meals_taken = MealRecord.objects.filter(date=today, taken=True).count()
+    # Today's meals taken (count unique users who have taken both meals)
+    users_with_both_meals = User.objects.filter(
+        mealrecord__date=today,
+        mealrecord__taken=True,
+        mealrecord__meal_type='noon'
+    ).filter(
+        mealrecord__date=today,
+        mealrecord__taken=True,
+        mealrecord__meal_type='dinner'
+    ).distinct().count()
+    today_meals_taken = users_with_both_meals
     
     # Low balance users (balance < 50)
     low_balance_users = UserProfile.objects.filter(balance__lt=50, meal_active=True)
@@ -230,26 +262,151 @@ def manager_dashboard(request):
         
         if user_id and meal_type:
             user = get_object_or_404(User, id=user_id)
-            meal_record, created = MealRecord.objects.get_or_create(
-                user=user,
-                date=today,
-                meal_type=meal_type
-            )
+            profile = user.userprofile
+            
+            # Get current state before changes
+            noon_before = MealRecord.objects.filter(
+                user=user, date=today, meal_type='noon', taken=True
+            ).first()
+            dinner_before = MealRecord.objects.filter(
+                user=user, date=today, meal_type='dinner', taken=True
+            ).first()
+            had_both_meals_before = noon_before and dinner_before
+            
+            # Store previous balance for message
+            previous_balance = profile.balance
             
             if action == 'toggle':
-                meal_record.taken = not meal_record.taken
+                # Toggle meal taken status
+                meal_record, created = MealRecord.objects.get_or_create(
+                    user=user,
+                    date=today,
+                    meal_type=meal_type,
+                    defaults={'taken': True, 'meal_count': 1.0}
+                )
+                if not created:
+                    meal_record.taken = not meal_record.taken
+                    meal_record.save()
+                    
             elif action == 'set_taken':
-                meal_record.taken = True
+                # Set meal as taken
+                meal_record, created = MealRecord.objects.get_or_create(
+                    user=user,
+                    date=today,
+                    meal_type=meal_type,
+                    defaults={'taken': True, 'meal_count': 1.0}
+                )
+                if not created and not meal_record.taken:
+                    meal_record.taken = True
+                    meal_record.save()
+                    
             elif action == 'set_not_taken':
-                meal_record.taken = False
+                # Set meal as not taken
+                meal_record = MealRecord.objects.filter(
+                    user=user,
+                    date=today,
+                    meal_type=meal_type
+                ).first()
+                if meal_record:
+                    meal_record.taken = False
+                    meal_record.save()
+            
+            # Handle meal deduction/refund logic
+            noon_after = MealRecord.objects.filter(
+                user=user, date=today, meal_type='noon', taken=True
+            ).first()
+            dinner_after = MealRecord.objects.filter(
+                user=user, date=today, meal_type='dinner', taken=True
+            ).first()
+            
+            had_both_meals_after = noon_after and dinner_after
+            
+            # Check if we need to deduct or refund
+            meal_rate = profile.get_meal_rate()
+            
+            if had_both_meals_after and not had_both_meals_before:
+                # Both meals are now taken - deduct cost
                 
-            meal_record.save()
+                # Check if deduction already made for today
+                existing_deduction = Transaction.objects.filter(
+                    user=user,
+                    transaction_type='meal_deduction',
+                    created_at__date=today
+                ).exists()
+                
+                if not existing_deduction and profile.balance >= meal_rate:
+                    profile.balance -= meal_rate
+                    profile.save()
+                    
+                    Transaction.objects.create(
+                        user=user,
+                        amount=meal_rate,
+                        transaction_type='meal_deduction',
+                        description=f'Full day meal (Noon + Dinner) - Manager recorded',
+                        created_by=request.user
+                    )
+                    messages.success(request, f'✅ Meal cost ৳{meal_rate} deducted from {user.get_full_name()}. New balance: ৳{profile.balance}')
+                elif profile.balance < meal_rate:
+                    messages.error(request, f'❌ Insufficient balance for {user.get_full_name()}. Balance: ৳{profile.balance}')
+                    
+            elif not had_both_meals_after and had_both_meals_before:
+                # One meal was untaken - refund the cost
+                
+                # Find today's meal deduction transaction
+                today_deduction = Transaction.objects.filter(
+                    user=user,
+                    transaction_type='meal_deduction',
+                    created_at__date=today
+                ).first()
+                
+                if today_deduction:
+                    # Refund the amount
+                    profile.balance += meal_rate
+                    profile.save()
+                    
+                    # Create refund transaction
+                    Transaction.objects.create(
+                        user=user,
+                        amount=meal_rate,
+                        transaction_type='meal_refund',
+                        description=f'Meal refund - One meal untaken by manager',
+                        created_by=request.user
+                    )
+                    
+                    messages.warning(request, f'🔄 Meal cost ৳{meal_rate} refunded to {user.get_full_name()}. New balance: ৳{profile.balance}')
+
+    # Prefetch meal records for today for all active users and organize them
+    today_meal_records = MealRecord.objects.filter(
+        date=today,
+        user__userprofile__in=active_users
+    ).select_related('user')
+    
+    # Create a structured data for template
+    user_meal_data = []
+    for profile in active_users:
+        user_meals = {
+            'profile': profile,
+            'noon_meal': None,
+            'dinner_meal': None
+        }
+        
+        # Find meal records for this user
+        for record in today_meal_records:
+            if record.user.id == profile.user.id:
+                if record.meal_type == 'noon':
+                    user_meals['noon_meal'] = record
+                elif record.meal_type == 'dinner':
+                    user_meals['dinner_meal'] = record
+        
+        user_meal_data.append(user_meals)
     
     context = {
         'users': users,
         'active_users': active_users,
+        'user_meal_data': user_meal_data,
         'today': today,
         'query': query,
+        'active_user_search': active_user_search,
         'pending_guest_requests': pending_guest_requests,
         'pending_complaints': pending_complaints,
         'today_meals_taken': today_meals_taken,
@@ -258,7 +415,6 @@ def manager_dashboard(request):
         'month_start': month_start,
     }
     return render(request, 'dining/manager_dashboard.html', context)
-
 @login_required
 @user_passes_test(is_dining_manager)
 def recharge_account(request, user_id):
@@ -517,47 +673,213 @@ def update_complaint_status(request, complaint_id):
     
     return redirect('complaint_list')
 
-# Multiple Meal Support
+# # Multiple Meal Support
+# @login_required
+# def update_meal_count(request):
+#     if request.method == 'POST':
+#         meal_type = request.POST.get('meal_type')
+#         meal_count = Decimal(request.POST.get('meal_count', '1.0'))
+#         date = timezone.now().date()
+        
+#         meal_record, created = MealRecord.objects.get_or_create(
+#             user=request.user,
+#             date=date,
+#             meal_type=meal_type,
+#             defaults={'meal_count': meal_count, 'taken': True}
+#         )
+        
+#         if not created:
+#             meal_record.meal_count = meal_count
+#             meal_record.taken = True
+#             meal_record.save()
+        
+#         # Deduct meal cost
+#         profile = request.user.userprofile
+#         meal_rate = profile.get_meal_rate()
+#         cost = meal_count * meal_rate
+        
+#         if profile.balance >= cost:
+#             profile.balance -= cost
+#             profile.save()
+            
+#             # Record transaction
+#             Transaction.objects.create(
+#                 user=request.user,
+#                 amount=cost,
+#                 transaction_type='meal_deduction',
+#                 description=f'{meal_type} meal - {meal_count} portion(s)',
+#                 created_by=request.user
+#             )
+            
+#             messages.success(request, f'Meal recorded successfully! ৳{cost} deducted.')
+#         else:
+#             messages.error(request, 'Insufficient balance for this meal.')
+        
+#         return redirect('dashboard')
 @login_required
 def update_meal_count(request):
     if request.method == 'POST':
         meal_type = request.POST.get('meal_type')
-        meal_count = Decimal(request.POST.get('meal_count', '1.0'))
+        requested_for_night = request.POST.get('requested_for_night') == 'true'
         date = timezone.now().date()
-        
-        meal_record, created = MealRecord.objects.get_or_create(
-            user=request.user,
-            date=date,
-            meal_type=meal_type,
-            defaults={'meal_count': meal_count, 'taken': True}
-        )
-        
-        if not created:
-            meal_record.meal_count = meal_count
-            meal_record.taken = True
-            meal_record.save()
-        
-        # Deduct meal cost
         profile = request.user.userprofile
-        meal_rate = profile.get_meal_rate()
-        cost = meal_count * meal_rate
         
-        if profile.balance >= cost:
-            profile.balance -= cost
-            profile.save()
-            
-            # Record transaction
-            Transaction.objects.create(
+        # Check if user has active meal
+        if not profile.meal_active:
+            messages.error(request, 'Your meal service is not active.')
+            return redirect('dashboard')
+        
+        if meal_type == 'noon' and requested_for_night:
+            # User is requesting to take noon meal at dinner time
+            meal_record, created = MealRecord.objects.get_or_create(
                 user=request.user,
-                amount=cost,
-                transaction_type='meal_deduction',
-                description=f'{meal_type} meal - {meal_count} portion(s)',
-                created_by=request.user
+                date=date,
+                meal_type='noon',
+                defaults={
+                    'taken': False,
+                    'requested_for_night': True,
+                    'meal_count': 1.0
+                }
             )
             
-            messages.success(request, f'Meal recorded successfully! ৳{cost} deducted.')
-        else:
-            messages.error(request, 'Insufficient balance for this meal.')
+            if not created:
+                if meal_record.taken:
+                    messages.warning(request, 'Noon meal already taken today.')
+                    return redirect('dashboard')
+                meal_record.requested_for_night = True
+                meal_record.save()
+            
+            messages.success(request, 'Noon meal requested for dinner time pickup.')
+            return redirect('dashboard')
+        
+        # Regular meal recording
+        if meal_type == 'noon':
+            # Check if noon meal already exists
+            existing_noon = MealRecord.objects.filter(
+                user=request.user,
+                date=date,
+                meal_type='noon'
+            ).first()
+            
+            if existing_noon:
+                if existing_noon.taken:
+                    messages.warning(request, 'Noon meal already taken today.')
+                    return redirect('dashboard')
+                # Update existing record
+                existing_noon.taken = True
+                existing_noon.requested_for_night = False
+                existing_noon.save()
+                meal_record = existing_noon
+            else:
+                # Create new record
+                meal_record = MealRecord.objects.create(
+                    user=request.user,
+                    date=date,
+                    meal_type='noon',
+                    taken=True,
+                    requested_for_night=False,
+                    meal_count=1.0
+                )
+            
+            messages.success(request, 'Noon meal recorded successfully!')
+            
+        elif meal_type == 'dinner':
+            # Check if dinner already taken
+            existing_dinner = MealRecord.objects.filter(
+                user=request.user,
+                date=date,
+                meal_type='dinner',
+                taken=True
+            ).first()
+            
+            if existing_dinner:
+                messages.warning(request, 'Dinner already taken today.')
+                return redirect('dashboard')
+            
+            # Check if noon meal was requested for night pickup
+            noon_meal_requested = MealRecord.objects.filter(
+                user=request.user,
+                date=date,
+                meal_type='noon',
+                requested_for_night=True,
+                taken=False
+            ).first()
+            
+            if noon_meal_requested:
+                # Mark both noon and dinner as taken
+                noon_meal_requested.taken = True
+                noon_meal_requested.requested_for_night = False
+                noon_meal_requested.save()
+                
+                dinner_meal = MealRecord.objects.create(
+                    user=request.user,
+                    date=date,
+                    meal_type='dinner',
+                    taken=True,
+                    meal_count=1.0
+                )
+                
+                # Deduct cost for both meals (2 portions)
+                meal_rate = profile.get_meal_rate()
+                cost = 2.0 * meal_rate
+                
+                if profile.balance >= cost:
+                    profile.balance -= cost
+                    profile.save()
+                    
+                    Transaction.objects.create(
+                        user=request.user,
+                        amount=cost,
+                        transaction_type='meal_deduction',
+                        description='Noon (night pickup) + Dinner - 2 portions',
+                        created_by=request.user
+                    )
+                    
+                    messages.success(request, f'Both noon (dinner pickup) and dinner recorded! ৳{cost} deducted.')
+                else:
+                    messages.error(request, 'Insufficient balance for meal deduction.')
+                
+            else:
+                # Regular dinner recording
+                dinner_meal = MealRecord.objects.create(
+                    user=request.user,
+                    date=date,
+                    meal_type='dinner',
+                    taken=True,
+                    meal_count=1.0
+                )
+                
+                # Check if both meals are taken for today (regular flow)
+                noon_meal_taken = MealRecord.objects.filter(
+                    user=request.user,
+                    date=date,
+                    meal_type='noon',
+                    taken=True
+                ).first()
+                
+                if noon_meal_taken:
+                    # Both meals taken - deduct for full day (1 portion)
+                    meal_rate = profile.get_meal_rate()
+                    cost = 1.0 * meal_rate
+                    
+                    if profile.balance >= cost:
+                        profile.balance -= cost
+                        profile.save()
+                        
+                        Transaction.objects.create(
+                            user=request.user,
+                            amount=cost,
+                            transaction_type='meal_deduction',
+                            description='Full day meal (Noon + Dinner)',
+                            created_by=request.user
+                        )
+                        
+                        messages.success(request, f'Both meals recorded! ৳{cost} deducted for full day meal.')
+                    else:
+                        messages.error(request, 'Insufficient balance for meal deduction.')
+                else:
+                    # Only dinner taken - no deduction yet
+                    messages.success(request, 'Dinner recorded. Mark noon meal to complete your daily meal.')
         
         return redirect('dashboard')
 

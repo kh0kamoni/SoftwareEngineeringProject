@@ -98,7 +98,6 @@ class MealRecord(models.Model):
     date = models.DateField(default=timezone.now)
     meal_type = models.CharField(max_length=10, choices=MEAL_TYPES)
     taken = models.BooleanField(default=False)
-    taken_dinner = models.BooleanField(default=False)
     requested_for_night = models.BooleanField(default=False)
     meal_count = models.DecimalField(max_digits=4, decimal_places=2, default=1.0)  # 1.0, 2.0, 0.5 etc.
     
