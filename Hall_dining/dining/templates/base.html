@@ -103,9 +103,20 @@
         footer {
             background-color: transparent;
             color: #6c757d;
-            padding: 1.5rem 0;
+            padding: 0 !important;
             margin-top: auto;
             border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        footer .container {
+            padding-top: 0.4rem;
+            padding-bottom: 0.4rem;
+        }
+
+        footer p, footer small {
+            margin-bottom: 0;
+            font-size: 0.85rem;
+            text-align: center;
         }
         
         .alert {
@@ -186,7 +197,17 @@
                 Dinman
             </a> -->
 
-            <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}">
+            <!-- <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}">
+                <img src="https://logo-icons.com/cdn/shop/files/1098-logo-1713385510.325color-E63946.svg?v=1713403219&width=416" 
+                    alt="Muktijoddha Hall Logo" 
+                    height="30" 
+                    class="me-2" 
+                    style="filter: brightness(0) invert(1);">
+                Dinman
+            </a> -->
+
+            {% with logo_url=user.is_authenticated|yesno:"dashboard,home" %}
+            <a class="navbar-brand d-flex align-items-center" href="{% url logo_url %}">
                 <img src="https://logo-icons.com/cdn/shop/files/1098-logo-1713385510.325color-E63946.svg?v=1713403219&width=416" 
                     alt="Muktijoddha Hall Logo" 
                     height="30" 
@@ -194,6 +215,7 @@
                     style="filter: brightness(0) invert(1);">
                 Dinman
             </a>
+            {% endwith %}
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -317,7 +339,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2024 Muktijoddha Hall Dining Management System. All rights reserved.</p>
+            <p>&copy; 2026 Dinman, Inc. All rights reserved.</p>
         </div>
     </footer>
 
