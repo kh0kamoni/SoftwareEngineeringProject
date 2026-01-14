@@ -37,7 +37,7 @@
                                 <form method="POST" action="{% url 'request_meal_for_night' %}" class="mt-2">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-info btn-sm">
-                                        Request Noon Meal for Night
+                                        Request Lunch for Night
                                     </button>
                                 </form>
                                 {% endif %}
@@ -73,15 +73,15 @@
                 <div class="card mt-4">
                     <div class="card-header">
                         <h5>Today's Meal Selection</h5>
-                        <small class="text-muted">Mark your meals or request noon meal for dinner pickup</small>
+                        <small class="text-muted">Mark your meals or request Lunch for dinner pickup</small>
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <!-- Noon Meal Section -->
+                            <!-- Lunch Section -->
                             <div class="col-md-6">
                                 <div class="card {% if noon_taken %}border-success{% elif noon_requested_night %}border-warning{% endif %}">
                                     <div class="card-body text-center">
-                                        <h6>Noon Meal</h6>
+                                        <h6>Lunch</h6>
                                         
                                         {% if noon_taken %}
                                             <div class="alert alert-success py-2">
@@ -109,7 +109,7 @@
                                                     <input type="hidden" name="meal_type" value="noon">
                                                     <button type="submit" class="btn btn-success mb-2" 
                                                             {% if not profile.meal_active %}disabled{% endif %}>
-                                                        <i class="fas fa-utensils"></i> Take Noon Meal
+                                                        <i class="fas fa-utensils"></i> Take Lunch
                                                     </button>
                                                 </form>
                                                 
@@ -152,7 +152,7 @@
                                             
                                             {% if noon_requested_night %}
                                                 <div class="alert alert-info mt-2 py-1">
-                                                    <small>Noon meal will be included</small>
+                                                    <small>Lunch will be included</small>
                                                 </div>
                                             {% endif %}
                                         {% endif %}
@@ -192,7 +192,7 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>Noon Meal</h6>
+                            <h6>Lunch</h6>
                             {% for meal in today_meals %}
                                 {% if meal.meal_type == 'noon' %}
                                     <span class="badge {% if meal.taken %}bg-success{% else %}bg-secondary{% endif %}">
